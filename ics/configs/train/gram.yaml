@@ -1,0 +1,33 @@
+# GRAM training recipes (ics/train.py, ics_baselines/gram/train.py): what differs from the defaults of GRAMConfig and
+# TrainConfig, the shared settings first and each task's differences under `tasks:`.
+# model: GRAMConfig (ics_baselines/gram/model.py). Sudoku runs the MLP token mixer (mlp_t) without positional
+#        encodings, the other tasks attention with RoPE. optim: AdamW on every weight; the gradients' norm is clipped.
+# train: TrainConfig (ics/train.py). A block of the training order (epochs_per_block epochs) ends in an evaluation
+#        (eval_every). A global batch too large for the GPUs runs in micro-batches: --set train.accumulate=A.
+model:
+  L_cycles: 4
+  pos_encodings: rope
+optim:
+  lr: 1.0e-4
+  weight_decay: 1.0
+  betas: [0.9, 0.95]
+train:
+  global_batch: 768
+  epochs: 50000
+  epochs_per_block: 2000
+  ema: 0.9999
+  clip: 1.0
+  eval_every: 2604
+tasks:
+  sudoku:
+    model: {L_cycles: 6, pos_encodings: none, mlp_t: true}
+    train: {eval_boards: 12288}
+  maze: {}                      # one 48 GB GPU: --set train.accumulate=3 (micro-batches of 256 rows)
+  lightup:                      # one 48 GB GPU: --set train.accumulate=2 (micro-batches of 384 rows)
+    train: {epochs: 8734, epochs_per_block: 349, eval_every: 5202}
+  nurikabe:                     # one 48 GB GPU: --set train.accumulate=2 (micro-batches of 384 rows)
+    train: {epochs: 4381, epochs_per_block: 175, eval_every: 5199}
+  tapa:                         # one 48 GB GPU: --set train.accumulate=2 (micro-batches of 384 rows)
+    train: {epochs: 17211, epochs_per_block: 687, eval_every: 5197}
+  heyawake:                     # one 48 GB GPU: --set train.accumulate=3 (micro-batches of 256 rows)
+    train: {epochs: 1797, epochs_per_block: 72, eval_every: 5216}

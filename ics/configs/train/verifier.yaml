@@ -1,0 +1,19 @@
+# The verifier's recipe (ics/train.py, VerifierHead in ics/verifier/train.py): it fine-tunes a solver (--init
+# SOLVER/last) on the data of python -m ics verifier-data, for any task; train 3 seeds, then pick one (pick-verifier).
+# model: on top of the checkpoint's config: the depth T, segments per update from a cold start, no halting.
+# optim: AdamW on the weights; the puzzle embedding stays the solver's. train: 8,000 updates of 128 rows at a constant
+# lr, the gradient norm clipped to 1, no EMA, in deterministic mode. One 48 GB GPU runs it (faster: train.compile=true).
+model:
+  halt_max_steps: 8
+optim:
+  lr: 1.0e-4
+  weight_decay: 0.1
+  betas: [0.9, 0.95]
+train:
+  global_batch: 128
+  updates: 8000
+  lr_warmup: 0
+  ema: 0.0
+  clip: 1.0
+  log_every: 50
+  deterministic: true

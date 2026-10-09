@@ -1,0 +1,36 @@
+# Attractor training recipes (ics/train.py, ics_baselines/attractor/train.py): what differs from the defaults of
+# AttractorConfig and TrainConfig, the shared settings first and each task's differences under `tasks:`.
+# model: AttractorConfig (ics_baselines/attractor/model.py); every task attends (mlp_t false); L_cycles is not read.
+# optim: sign-SGD on the puzzle embedding, then AdamW on every weight, no gradient clipping; eps 8e-8 on any number
+#        of GPUs: the gradient is summed over GPUs, not averaged.
+# train: micro_batch is the rows of one solver call, which couples them. One 48 GB GPU holds Sudoku's recipe; the
+#        others need more than 80 GB per GPU (--set train.micro_batch=16 fits a smaller one, another computation).
+# compile: train.compile fails at the regulariser's double backward, so the recipes train eager.
+model:
+  L_layers: 8
+optim:
+  lr: 1.0e-4
+  weight_decay: 1.0
+  betas: [0.9, 0.95]
+  eps: 8.0e-8
+  puzzle_emb_lr: 1.0e-2
+  puzzle_emb_weight_decay: 1.0
+train:
+  global_batch: 768
+  updates: 65100
+  micro_batch: 96
+  eval_every: 6510
+  log_every: 50
+tasks:
+  sudoku:
+    train: {eval_boards: 12288}
+  maze:
+    train: {micro_batch: 48}
+  lightup:
+    train: {updates: 64990, epochs_per_block: 436, eval_every: 6499}
+  nurikabe:
+    train: {updates: 65070, epochs_per_block: 219, eval_every: 6507}
+  tapa:
+    train: {updates: 65050, epochs_per_block: 860, eval_every: 6505}
+  heyawake:
+    train: {updates: 64470, epochs_per_block: 89, eval_every: 6447}

@@ -1,0 +1,37 @@
+# ICS (ics/methods/ics.py). `cert` / `model`: the search with and without a task certificate at selection.
+# `window`: boards searched together (null = the whole pool); `restatements`: Sudoku restatements per board; `seed`:
+# their generator's (one per block of `batch` boards, ics/tasks/sudoku.py). With a verifier (--verifier) the model
+# regime does not search: the verifier selects among the solver's decodes of each board's restatements
+# (ics/verifier/select.py), with T, verifier_T, batch and window, and on Sudoku restatements and seed.
+seed: 7
+batch: 252
+window: null
+restatements: 32
+cert:
+  terminal: cert
+  T: 16
+  T_greedy: 20
+  patience: [64, 256]
+  levels: 6
+  beam: 4
+  cells: 48
+  alts: 2
+  node_budget: 96
+model:
+  terminal: q
+  T: 16
+  T_greedy: 20
+  patience: [64, 256]
+  levels: 8
+  beam: 3
+  cells: 6
+  alts: 2
+  node_budget: 24
+  agree: 2
+  verifier_T: 8
+tasks:
+  sudoku: {batch: 768, window: 6144, model: {cells: 24}}
+  tapa: {model: {terminal: confirm, patience: []}}
+  heyawake: {model: {terminal: confirm, patience: []}}
+  # Maze's model regime always selects with the verifier, so it needs one.
+  maze: {model: {selector: verifier, T: 16, batch: 250}}

@@ -1,0 +1,9 @@
+# EqR (ics_baselines/eqr/predict.py): R independent restarts of `steps` ACT steps per board. `seed` seeds one generator
+# per block of `batch` boards (a block runs batch x R rows).
+R: 128
+steps: 16
+seed: 0
+batch: 8
+tasks:
+  sudoku: {steps: 64, batch: 32}
+  maze: {steps: 64}

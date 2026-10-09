@@ -1,0 +1,30 @@
+# EqR training recipes (ics/train.py, ics_baselines/eqr/train.py): what differs from the defaults of EqRConfig and
+# TrainConfig, the shared settings first and each task's differences under `tasks:`.
+# model: EqRConfig (ics_baselines/eqr/model.py). Every task but Maze runs the MLP token mixer (mlp_t). optim: AdamATan2
+#        on every weight, no gradient clipping. train: TrainConfig (ics/train.py); a global batch too large for the
+#        GPUs runs in micro-batches: --set train.accumulate=A (global_batch must divide by GPUs x A).
+model:
+  pos_encodings: rope
+  mlp_t: true
+optim:
+  lr: 1.0e-4
+  weight_decay: 1.0
+  betas: [0.9, 0.95]
+train:
+  global_batch: 768
+  updates: 50000
+  eval_every: 5000
+tasks:
+  sudoku:
+    train: {eval_boards: 12288}
+  maze:                         # one 48 GB GPU: --set train.accumulate=6 (micro-batches of 128 rows)
+    model: {mlp_t: false, L_cycles: 4}
+    train: {updates: 100000}
+  lightup:                      # one 48 GB GPU: --set train.accumulate=6 (micro-batches of 128 rows)
+    train: {updates: 176000}
+  nurikabe:                     # one 48 GB GPU: --set train.accumulate=6 (micro-batches of 128 rows)
+    train: {updates: 853000}
+  tapa:                         # one 48 GB GPU: --set train.accumulate=6 (micro-batches of 128 rows)
+    train: {updates: 350000}
+  heyawake:                     # one 48 GB GPU: --set train.accumulate=6 (micro-batches of 128 rows)
+    train: {updates: 89000}

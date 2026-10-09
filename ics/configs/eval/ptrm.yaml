@@ -1,0 +1,9 @@
+# PTRM (ics/methods/ptrm.py): K rollouts of D segments; sigma scales the z_L noise.
+K: 100
+D: 64
+sigma: 0.3
+seed: 0
+batch: 256
+tasks:
+  sudoku: {batch: 768}
+  maze: {batch: 250}

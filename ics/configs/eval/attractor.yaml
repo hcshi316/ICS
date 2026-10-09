@@ -1,0 +1,11 @@
+# Attractor (ics_baselines/attractor/predict.py): R restarts of `segments` segments per board; restart k > 0 adds
+# sigma * N(0, 1) to the initial latent. A block of `batch` boards is solved together, so `batch` shapes the answers,
+# and `seed` seeds one generator per block. On Sudoku only the first 3,072 test boards are evaluated (`rows`).
+R: 128
+sigma: 0.5
+segments: 16
+seed: 0
+batch: 128
+tasks:
+  sudoku: {batch: 768, rows: 3072}
+  maze: {batch: 192}

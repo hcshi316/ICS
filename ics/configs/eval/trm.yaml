@@ -1,0 +1,7 @@
+# Standard TRM, + greedy depth and + depth scaling (ics/methods/trm.py): one roll of T segments per board.
+T: 6400
+standard_at: 16
+batch: 256
+tasks:
+  sudoku: {batch: 4096}
+  maze: {batch: 1000}

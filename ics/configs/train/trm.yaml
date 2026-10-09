@@ -1,0 +1,30 @@
+# TRM training recipes (ics/train.py): what differs from the defaults of TRMConfig and TrainConfig, the shared settings
+# first and each task's differences under `tasks:`.
+# model: TRMConfig (ics/trm/model.py). optim: TRMHead.optimizers: AdamATan2 on the weights, sign-SGD on the puzzle
+#        embedding. train: TrainConfig; a global batch too large for the GPUs runs in micro-batches (--set
+#        train.accumulate=A). For the verifier's data keep snapshots with --set train.keep_every_eval=true (Light-Up:
+#        also train.eval_every=13020; the PPB tasks: 19530, for about 11 snapshots).
+optim:
+  lr: 1.0e-4
+  weight_decay: 1.0
+  betas: [0.9, 0.95]
+  puzzle_emb_lr: 1.0e-4
+  puzzle_emb_weight_decay: 1.0
+train:
+  global_batch: 768
+  epochs: 50000
+tasks:
+  sudoku:
+    model: {mlp_t: true, pos_encodings: none}
+    train: {eval_every: 6510, eval_boards: 12288}
+  maze:                         # one 48 GB GPU: --set train.accumulate=6 (micro-batches of 128 rows)
+    model: {L_cycles: 4}
+    train: {eval_every: 6510}
+  lightup:                      # one 48 GB GPU: --set train.accumulate=6 (micro-batches of 128 rows)
+    train: {epochs: 8735}
+  nurikabe:
+    train: {global_batch: 128, epochs: 1096}
+  tapa:
+    train: {global_batch: 128, epochs: 4303}
+  heyawake:
+    train: {global_batch: 128, epochs: 449}

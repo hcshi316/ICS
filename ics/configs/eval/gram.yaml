@@ -1,0 +1,9 @@
+# GRAM (ics_baselines/gram/predict.py): N samples of D supervision steps per board. `seed` seeds the guidance noise, one
+# generator per sample and block of `batch` boards.
+N: 100
+D: 64
+seed: 0
+batch: 128
+tasks:
+  sudoku: {batch: 3072}
+  maze: {batch: 768}
