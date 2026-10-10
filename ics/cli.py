@@ -8,12 +8,18 @@
   python -m ics pick-verifier RUN [RUN ...] --out DIR
   python -m ics eval          --method {trm,ptrm,ics,gram,eqr,attractor} --task TASK --ckpt CKPT --data DIR --out DIR
                               [--verifier CKPT]
+  python -m ics llm prompt    --task TASK --out DIR [--board K]
+  python -m ics llm run       --task TASK --model MODEL --out DIR [--board K] [--provider {openai,anthropic}]
+                              [--base-url URL] [--max-tokens N] [--set KEY=VALUE ...] [--header KEY=VALUE ...]
+  python -m ics llm grade     --task TASK --replies DIR
 Parsing touches no CUDA, so that train.deterministic sets PyTorch's deterministic mode before CUDA starts
 (ics/train.py)."""
 from __future__ import annotations
 
 import argparse
 import inspect
+import json
+import os
 import shutil
 from pathlib import Path
 
@@ -24,6 +30,8 @@ from ics.builders import overlap
 from ics.builders.ppb import PPBenchUnavailable
 from ics.config import merge_config, parse_yaml
 from ics.evaluate import REGIMES, evaluate
+from ics.llm import TASKS as LLM_TASKS
+from ics.llm import RequestError, golden, grade, prompt, query
 from ics.registry import HEADS, METHODS, TASKS
 from ics.train import train
 from ics.verifier.data import build_verifier_data
@@ -271,9 +279,116 @@ def _eval(a, parser):
         print(f"{key:28s} {rec['accuracy']:.4f} ({rec['correct']}/{rec['n']})")
 
 
+# python -m ics llm: a language model on PPBench's golden boards (ics/llm). Board K's prompt is
+# <task>_<K>.prompt.txt, its reply <task>_<K>.txt.
+def _header(text: str) -> tuple[str, str]:
+    """KEY=VALUE -> (KEY, VALUE), a header of the request."""
+    key, sep, value = text.partition("=")
+    if not sep or not key:
+        raise argparse.ArgumentTypeError(f"expected KEY=VALUE, got {text!r}")
+    return key, value
+
+
+def _llm_args(sub):
+    g = sub.add_parser("llm", help="test a language model on PPBench's golden boards: prompt, run, grade")
+    steps = g.add_subparsers(dest="step", required=True)
+    p = steps.add_parser("prompt", help="write the prompts of a task's golden boards, for a client of your own (run "
+                                        "builds its own)")
+    r = steps.add_parser("run", help="ask a model for the answers to a task's golden boards")
+    d = steps.add_parser("grade", help="grade the replies to a task's golden boards")
+    for step in (p, r, d):
+        step.add_argument("--task", choices=LLM_TASKS, required=True)
+    for step in (p, r):
+        step.add_argument("--board", type=int, choices=range(15), metavar="K", help="board K alone, 0 to 14")
+    p.add_argument("--out", required=True, help="directory of the prompts, <task>_<K>.prompt.txt")
+    r.add_argument("--model", required=True, help="the model's name at the endpoint")
+    r.add_argument("--out", required=True, help="directory of the replies, <task>_<K>.txt, each saved whole with its "
+                                                "token usage, <task>_<K>.usage.json; a board whose reply is there is "
+                                                "kept (delete the reply to ask again), and one whose request fails is "
+                                                "skipped, to be asked again by a rerun (an HTTP 400, 401, 403 or 404 "
+                                                "stops the run)")
+    r.add_argument("--provider", choices=("openai", "anthropic"), default="openai",
+                   help="openai (default): an OpenAI-compatible /chat/completions, its key, if it needs one, in "
+                        "OPENAI_API_KEY (start a vLLM server with the model's reasoning parser, so that a reply "
+                        "holds the answer alone); anthropic: Anthropic's /v1/messages, its key in ANTHROPIC_API_KEY")
+    r.add_argument("--base-url", metavar="URL",
+                   help="the API's root: an OpenAI-compatible server's with its /v1 (default "
+                        "http://localhost:8000/v1, a vLLM server's), or Anthropic's (default https://api.anthropic.com)")
+    r.add_argument("--max-tokens", type=_at_least(1), default=16000, metavar="N",
+                   help="the longest reply in tokens, its thinking included (default 16000)")
+    r.add_argument("--set", type=_setting, action="append", default=[], metavar="KEY=VALUE",
+                   help="a field of the request, e.g. temperature=0.6 (a dotted KEY nests); null drops the field, "
+                        "e.g. for OpenAI's reasoning models max_tokens=null with max_completion_tokens=N")
+    r.add_argument("--header", type=_header, action="append", default=[], metavar="KEY=VALUE",
+                   help="a header to add to the request")
+    d.add_argument("--replies", required=True, help="directory of the replies, <task>_<K>.txt (from run, or by hand)")
+    for step, handle in ((p, _llm_prompt), (r, _llm_run), (d, _llm_grade)):
+        step.set_defaults(handle=handle, step_parser=step)
+    return g
+
+
+def _llm(a, parser):
+    a.handle(a, a.step_parser)
+
+
+def _llm_prompt(a, parser):
+    out, boards = Path(a.out), golden(a.task)
+    out.mkdir(parents=True, exist_ok=True)
+    for k in (range(len(boards)) if a.board is None else [a.board]):
+        (out / f"{a.task}_{k}.prompt.txt").write_text(prompt(a.task, boards[k]), newline="\n")
+    print(f"wrote {out}")
+
+
+def _llm_run(a, parser):
+    if a.provider == "anthropic" and not os.environ.get("ANTHROPIC_API_KEY"):
+        parser.error("--provider anthropic reads its key from ANTHROPIC_API_KEY, which is not set")
+    out, boards, skipped = Path(a.out), golden(a.task), []
+    out.mkdir(parents=True, exist_ok=True)
+    for k in (range(len(boards)) if a.board is None else [a.board]):
+        reply = out / f"{a.task}_{k}.txt"
+        if reply.exists():
+            print(f"board {k}: kept {reply}")
+            continue
+        try:
+            text, record = query(prompt(a.task, boards[k]), a.model, a.provider, a.base_url, a.max_tokens,
+                                 _overrides(a.set), dict(a.header))
+        except RequestError as e:       # refused as every board's request would be: stop, in one line
+            parser.exit(1, f"{parser.prog}: error: board {k}: {e}\n")
+        except OSError as e:            # no connection, a 429 or 5xx after the retry, no complete reply: skip it
+            skipped.append(k)
+            print(f"board {k}: skipped: {e}")
+            continue
+        (out / f"{a.task}_{k}.usage.json").write_text(json.dumps(record, indent=1) + "\n", newline="\n")
+        part = reply.with_name(reply.name + ".part")                  # renamed once whole: never a partial reply
+        part.write_text(text, encoding="utf-8", newline="\n")
+        part.replace(reply)
+        empty = "" if text.strip() else ", an empty reply"
+        print(f"board {k}: wrote {reply} (stop reason {record['stop_reason']}{empty})")
+    if skipped:
+        parser.exit(1, f"{parser.prog}: error: skipped board {', '.join(map(str, skipped))}; run the command again to "
+                       f"ask them again\n")
+
+
+def _llm_grade(a, parser):
+    replies = Path(a.replies)
+    if not replies.is_dir():
+        parser.error(f"--replies {a.replies} is not a directory")
+    verdicts = []
+    for k, board in enumerate(golden(a.task)):
+        path = replies / f"{a.task}_{k}.txt"
+        v = (grade(a.task, board, path.read_text(encoding="utf-8", errors="replace")) if path.is_file()
+             else {"format_ok": False, "valid": False, "reason": "no reply"})
+        verdicts.append({"board": k, **v})
+        verdict = "valid" if v["valid"] else f"{'invalid' if v['format_ok'] else 'no answer'} ({v['reason']})"
+        print(f"board {k}: {verdict}")
+    valid, path = sum(v["valid"] for v in verdicts), replies / f"{a.task}_grades.json"
+    path.write_text(json.dumps({"task": a.task, "valid": valid, "boards": verdicts}, indent=1) + "\n", newline="\n")
+    print(f"{a.task}: {valid}/{len(verdicts)} rule-valid; wrote {path}")
+
+
 COMMANDS = {"data": (_data_args, _data), "download": (_download_args, _download), "train": (_train_args, _train),
             "verifier-data": (_verifier_data_args, _verifier_data), "pick-verifier": (_pick_args, _pick),
-            "eval": (_eval_args, _eval)}
+            "eval": (_eval_args, _eval), "llm": (_llm_args, _llm)}
 
 
 def main(argv=None):

@@ -82,6 +82,23 @@ done
 python -m ics pick-verifier V0 V1 V2 --out VERIFIER
 ```
 
+## LLM baselines
+
+```
+python -m ics llm run    --task tapa --model MODEL --out replies    # tasks: lightup nurikabe tapa heyawake
+python -m ics llm grade  --task tapa --replies replies
+python -m ics llm prompt --task tapa --out prompts                  # the prompts alone, for a client of your own
+```
+
+A language model answers a task's 15 golden boards from Pencil Puzzle Bench, prompted with puzz.link's rules, the board
+and the answer's format (`ics/llm/`); `grade` counts the replies whose last fenced code block solves its board. `run`
+asks an OpenAI-compatible server at `--base-url` (default `http://localhost:8000/v1`, a vLLM server; key, if any, in
+`OPENAI_API_KEY`) or, with `--provider anthropic`, Anthropic's API (key in `ANTHROPIC_API_KEY`). It saves each reply as
+`<task>_<K>.txt`, skips a board that has one (delete it to ask again) and leaves a failed board for a rerun.
+`--max-tokens` counts the thinking too; start a vLLM server with the model's reasoning parser, so that a reply holds
+the answer alone. `--set KEY=VALUE` sets a field of the request and a null drops one, e.g. for OpenAI's reasoning
+models `--set max_tokens=null --set max_completion_tokens=N`.
+
 ## Code map
 
 ```
@@ -94,6 +111,7 @@ ics/select.py      the block loop of the sampling methods; ics/seeding.py: their
 ics/verifier/      the verifier: its data, training, pick, and the selection it makes
 ics/train.py       the training loop of every model         ics/evaluate.py   the evaluation of every method
 ics/configs/       train/<model>.yaml recipes, eval/<method>.yaml protocols
+ics/llm/           the LLM baselines: PPBench's golden boards (givens only), the prompts, the grader, a client
 ics_baselines/     GRAM, EqR, Attractor: model.py, predict.py (protocol), train.py (training head)
 tests/             pytest; ICS_DATA_ROOT=data also runs the data tests on the datasets built there
 ```

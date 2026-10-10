@@ -1,0 +1,19 @@
+You are solving a Heyawake puzzle.
+
+Rules:
+Shade cells so unshaded cells are connected. No row/column segment of unshaded cells spans more than one region boundary. Numbers indicate shaded cells in that region.
+You're given a board divided into rooms. Shade some cells on the board.
+1. Shaded cells cannot be horizontally or vertically adjacent.
+2. A number indicates the amount of shaded cells in a region.
+3. There cannot be a horizontal or vertical line of unshaded cells that goes through 2 or more region borders.
+4. All unshaded cells on the board form an orthogonally connected area.
+
+The board has {H} rows and {W} columns. Rows are numbered 1-{H} top to bottom, columns 1-{W} left to right.
+
+Room layout (each cell shows its room ID):
+{BOARD}
+
+Room clues (required number of shaded cells in that room):
+{CLUES}
+
+Think carefully, then output your final answer as exactly {H} lines of {W} characters each (no spaces), using S for a shaded cell and . for an unshaded cell, inside a ```-fenced code block. The last fenced block in your reply will be graded.

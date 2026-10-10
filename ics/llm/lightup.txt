@@ -1,0 +1,14 @@
+You are solving a Light Up (Akari) puzzle.
+
+Rules:
+Place lights in some empty cells so that every non-black cell is illuminated.
+1. Lights illuminate the cell they're in as well as all cells seen in a straight line horizontally or vertically, until obstructed by a black cell.
+2. Lights may not illuminate each other.
+3. Clues represent the number of lights in the (up to) four cells surrounding the clue.
+
+The board has {H} rows and {W} columns. Rows are numbered 1-{H} top to bottom, columns 1-{W} left to right.
+
+Board (# = a black cell, a digit 0-4 = a black cell carrying that clue, . = an empty cell):
+{BOARD}
+
+Think carefully, then output your final answer as exactly {H} lines of {W} characters each (no spaces), using L for a cell containing a light and . for every other cell, inside a ```-fenced code block. Black cells are part of the grid and are written as . in the answer. The last fenced block in your reply will be graded.

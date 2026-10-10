@@ -9,7 +9,7 @@ description = "Input-Conditioned Search: test-time scaling of recursive reasoner
 readme = "README.md"
 license = "MIT AND Apache-2.0"
 license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md", "LICENSES/Apache-2.0.txt", "LICENSES/MIT-PPBench.txt",
-                 "ics_baselines/*/LICENSE"]
+                 "LICENSES/MIT-pzprjs.txt", "ics_baselines/*/LICENSE"]
 requires-python = ">=3.10"
 dependencies = ["torch>=2.4", "numpy>=1.26", "einops>=0.8", "pyyaml>=6", "safetensors>=0.4", "huggingface_hub>=0.20"]
 
@@ -21,7 +21,7 @@ ppbench = ["ppbench==0.1.0"]  # rebuilding the Light-Up and PPB datasets (also n
 include = ["ics", "ics.*", "ics_baselines", "ics_baselines.*"]
 
 [tool.setuptools.package-data]
-ics = ["configs/eval/*.yaml", "configs/train/*.yaml"]
+ics = ["configs/eval/*.yaml", "configs/train/*.yaml", "llm/*.json", "llm/*.txt"]
 ics_baselines = ["*/LICENSE"]
 
 [tool.pytest.ini_options]

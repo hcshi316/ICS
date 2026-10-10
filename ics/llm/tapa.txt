@@ -1,0 +1,16 @@
+You are solving a Tapa puzzle.
+
+Rules:
+Shade some cells on the board.
+1. You cannot shade a cell with a number.
+2. Numbers represent the lengths of the blocks of consecutive shaded cells in the (up to) eight cells surrounding the clue. Numbers aren't necessarily in order.
+3. A question mark can be replaced by any positive number. If a cell only has a single question mark, the number is allowed to be zero.
+4. The shaded cells cannot form a 2x2 square.
+5. All shaded cells form an orthogonally contiguous area.
+
+The board has {H} rows and {W} columns. Rows are numbered 1-{H} top to bottom, columns 1-{W} left to right.
+
+Board (. = a cell with no clue; every other cell is a clue, written as its numbers separated by commas, e.g. 1,3):
+{BOARD}
+
+Think carefully, then output your final answer as exactly {H} lines of {W} characters each (no spaces), using S for a shaded cell and . for an unshaded cell, inside a ```-fenced code block. Clue cells are part of the grid and are written as . in the answer. The last fenced block in your reply will be graded.

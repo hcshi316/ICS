@@ -1,0 +1,16 @@
+You are solving a Nurikabe puzzle.
+
+Rules:
+Shade some cells on the board to form regions of unshaded cells.
+1. Each region contains exactly one number.
+2. A number indicates the size of the region that contains it.
+3. You cannot shade a cell with a number.
+4. The shaded cells cannot form a 2x2 square.
+5. All shaded cells form an orthogonally contiguous area.
+
+The board has {H} rows and {W} columns. Rows are numbered 1-{H} top to bottom, columns 1-{W} left to right.
+
+Board (. = a cell with no clue, a number = the clue written in that cell):
+{BOARD}
+
+Think carefully, then output your final answer as exactly {H} lines of {W} characters each (no spaces), using S for a shaded cell and . for an unshaded cell, inside a ```-fenced code block. Clue cells are part of the grid and are written as . in the answer. The last fenced block in your reply will be graded.
